@@ -1,74 +1,95 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import axios from 'axios'
+import React, { useState, useEffect } from "react";
+import { useSelector, useDispatch } from "react-redux";
+import { Navigate } from 'react-router-dom';
 
-import { accountService } from '../../../_services/account.service';
+import { getLogin } from "../../../API/api";
+import { getToken } from "../../../redux/reducer/Token/token";
+
+import './SignIn.css'
 
 export default function SignIn() {
 
-  let navigate = useNavigate()
+  // Use State
+  let [loginErreur, setLoginErreur] = useState("");
+  let [loginStatus, setLoginStatus] = useState(0);
 
-  const [credentials, setCredentials] = useState({
-    username: 'steve@rogers.com',
-    password: 'password456'
-  })
+  let [email, setEmail] = useState("");
+  let [password, setPassword] = useState("");
+  let [remember, setRemember] = useState(false);
 
-  const onChange = (e) => {
-    setCredentials({
-      ...credentials,
-      [e.target.name]: e.target.value
-    })
-  }
 
+      // Use Selector
+      const token = useSelector((state) => state.token.value);
+
+      // Use Effect
+      useEffect(() => {
+          if(token === localStorage.getItem("token")) {
+              ajoutToken(localStorage.getItem("token"));
+          }
+      });
   
-    // Soumission du formulaire
-    const onSubmit = (e) => {
-      e.preventDefault()
-      console.log(credentials);
 
-      axios.post('http://localhost:3001/api/v1/user/login',
-          {body : JSON.stringify(credentials)}, 
-          { headers: { "Content-Type": "application/json"} },
-        )  
-        .then(res => {
-          console.log(res)
-          accountService.saveToken(res.data.access_token)
-          navigate('/user')
-        })
-        .catch(err => console.log(err))
 
-      // accountService.login(credentials)
-      //     .then(res => {
-      //         // Sauvegarde du token et envoi vers admin
-      //         accountService.saveToken(res.data.access_token)
-      //         navigate('/admin', {replace: true})
-      //     })
-      //     .catch(error => console.log(error))
+    // Handle Submit
+  const onSubmit = (e) => {
+    e.preventDefault();
+    const login = getLogin({"email": email, "password": password});
+    login.then(obj => {
+        if(obj.status !== 400) {
+            setLoginStatus(obj.status);
+            ajoutToken(obj.token);
+        } else {
+            setLoginErreur(obj.message);
+        }
+    });
   }
 
-  return (
-    <main className="main bg-dark">
-      <section className="sign-in-content">
-        <i className="fa fa-user-circle sign-in-icon"></i>
-        <h1>Sign In</h1>
-        <form onSubmit={onSubmit}>
-          <div className="input-wrapper">
-            <label htmlFor="username">Username</label
-            ><input type="text" name="username" id="username"  value={credentials.username} onChange={onChange}/>
-          </div>
-          <div className="input-wrapper">
-            <label htmlFor="password">Password</label
-            ><input type="password" name="password" id="password"  value={credentials.password} onChange={onChange}/>
-          </div>
-          <div className="input-remember">
-            <input type="checkbox" id="remember-me" /><label htmlFor="remember-me"> Remember me </label>
-          </div>
+      // Handle Remember
+    const handleRemember = (event) => {
+      setRemember(event.target.checked);
+  }
 
-          <button className="sign-in-button">Sign In</button>
 
-        </form>
-      </section>
-    </main>
-  )
+    // Add the token
+    const dispatch = useDispatch();
+
+    const ajoutToken = (token) => {
+        if(remember === true) {
+            localStorage.setItem("token", token);
+        }
+        dispatch(getToken(token));
+    }
+
+
+    // Redirection
+    if(token !== 0 || loginStatus === 200 || token === localStorage.getItem("token")) return <Navigate to="/user" /> 
+
+
+    return (
+      <main className="bg-dark">
+          <section className="sign-in-content">
+              <i className="fa fa-user-circle sign-in-icon"></i>
+              <h1>Sign In</h1>
+              <form onSubmit={onSubmit}>
+                  <div className="input-wrapper">
+                      <label htmlFor="username">Username</label>
+                      <input type="text" id="username" onChange={e => setEmail(e.target.value)} />
+                  </div>
+                  <div className="input-wrapper">
+                      <label htmlFor="password">Password</label>
+                      <input type="password" id="password" onChange={e => setPassword(e.target.value)} />
+                  </div>
+                  <div className="input-remember">
+                      <input type="checkbox" id="remember-me" onChange={handleRemember} />
+                      <label htmlFor="remember-me">Remember me</label>
+                  </div>
+                  <div>
+                      {loginErreur}
+                  </div>
+                  <button className="sign-in-button">Sign In</button>
+              </form>
+          </section>
+      </main>
+  );
 
 }

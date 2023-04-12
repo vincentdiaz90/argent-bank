@@ -2,7 +2,7 @@ import React from 'react'
 
 import { Outlet } from 'react-router-dom'
 
-import NavbarPublic from '../../../Components/Public/NavbarPublic/NavbarPublic'
+import NavbarPublic from '../../../Components/Navbar/Navbar'
 
 export default function Layout() {
     return (
